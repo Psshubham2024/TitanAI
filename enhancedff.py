@@ -10,10 +10,10 @@ import re
 API_URL = "https://api.psnext.info/api/chat"
 PSCHATACCESSTOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySW5mbyI6eyJpZCI6MzcxMzcsInJvbGVzIjpbImRlZmF1bHQiXSwicGF0aWQiOiJmYTRlMzZhNC1mMWU5LTRjMjktODYwMi0wZDU1NGFmMGIxYzcifSwiaWF0IjoxNzI2MDUwNDI2LCJleHAiOjE3Mjg2NDI0MjZ9.gw74MhUO6rO3wrauMHQxdm8PWK6RBJAh6v7yIFSS8zA"  # Replace with your actual token
 
-# Function to call PSNext API for CV matching and rating
+# Function to call PSNext API for CV matching
 def get_cv_match(cv_text, job_description):
     payload = {
-        "message": f"Evaluate this CV against the following job description, providing a rating out of 10 and feedback:\n\nJob Description:\n{job_description}\n\nCV:\n{cv_text}",
+        "message": f"Evaluate this CV against the following job description:\n\nJob Description:\n{job_description}\n\nCV:\n{cv_text}",
         "options": {"model": "gpt35turbo"}
     }
     
@@ -29,18 +29,10 @@ def get_cv_match(cv_text, job_description):
         messages = response_data.get('data', {}).get('messages', [])
         for message in messages:
             if message.get('role') == 'assistant':
-                result = message.get('content', 'No content returned from the API.')
-                # Extract the rating and feedback from the result
-                match = re.search(r'Rating: (\d+)/10', result)
-                if match:
-                    rating = int(match.group(1))
-                    feedback = result.split('\n', 1)[1] if '\n' in result else ''
-                    return rating, feedback
-                else:
-                    return 0, 'Unable to extract rating from the response.'
-        return 0, 'No assistant message found in the API response.'
+                return message.get('content', 'No content returned from the API.')
+        return 'No assistant message found in the API response.'
     else:
-        return 0, f"Error: {response.status_code}, {response.text}"
+        return f"Error: {response.status_code}, {response.text}"
 
 # Function to generate case study questions
 def generate_case_study_questions(job_description, years_of_experience, industry, difficulty_level):
@@ -139,20 +131,18 @@ def get_rating_emoji(rating):
 
 # Welcome page
 def welcome_page():
-    st.title("CareerQgen-Your AI-Powered Staffing Solution!")
-    st.subheader("Optimize Your Hiring Process with AI ©TitanAI")
+    st.title("Welcome to the AI-Powered CV Screening Tool!")
+    st.subheader("Optimize Your Hiring Process with AI")
     st.markdown("""
         This application uses cutting-edge AI technology to evaluate candidate CVs against job descriptions,
         and generate tailored case study questions for interviews. 
         
         **Features:**
         - CV matching for job requirements
-        - Generate case study questions based on job descriptions and experience of the candidate
+        - Generate case study questions based on job descriptions and experience
         - Match case study answers with provided responses
         
-        
         Please login to continue.
-        
     """)
     if st.button("Continue"):
         st.session_state["page"] = "login"
@@ -172,19 +162,18 @@ def login_page():
 
 # Main app page
 def main_app():
-    st.title("CareerQgen-Your AI-Powered Staffing Solution")
-    st.subheader("Optimize Your Hiring Process with AI")
+    st.title("AI-Powered CV Screening and Case Study Matching")
 
     # Add a logout button
     if st.button("Logout"):
         st.session_state["logged_in"] = False
         st.session_state["page"] = "welcome"
 
-    tabs = st.tabs(["Profile Matching & Case Study Generation", "Case Study evaluation"])
+    tabs = st.tabs(["CV Matching & Case Study Questions", "Case Study Answer Matching"])
 
     # Tab 1: CV Matching & Case Study Questions
     with tabs[0]:
-        st.header("CV Matching & Case Study evaluation")
+        st.header("CV Matching & Case Study Questions")
         st.write("Upload a CV (PDF or Word) and provide a job description to get a match evaluation and case study questions.")
 
         # Upload CV (Word or PDF)
@@ -208,9 +197,8 @@ def main_app():
             if cv_text.strip():
                 if st.button("Get Match Analysis"):
                     with st.spinner("Analyzing CV..."):
-                        rating, result = get_cv_match(cv_text, job_description)
+                        result = get_cv_match(cv_text, job_description)
                         result_output.text_area("Match Analysis Result", result, height=200)
-                        st.write(f"Rating: {rating}/10 {get_rating_emoji(rating)}")
 
                 if st.button("Generate Case Study Questions"):
                     with st.spinner("Generating questions..."):
@@ -231,7 +219,7 @@ def main_app():
 
     # Tab 2: Case Study Answer Matching
     with tabs[1]:
-        st.header("Case Study Response evaluation")
+        st.header("Case Study Answer Matching")
         st.write("Match case study questions with their provided answers.")
 
         question = st.text_area("Case Study Question", height=100)
